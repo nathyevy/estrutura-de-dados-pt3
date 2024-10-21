@@ -1,0 +1,287 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <locale.h>
+
+typedef struct {
+    char nm[50];
+    char sn[50];
+    char eml[100];
+} usr;
+
+typedef struct lvr {
+    int num;
+    char ttl[100];
+    float prc;
+    struct lvr *prox;
+} lvr;
+
+void cad();
+void ed();
+void listCad();
+void acsCad();
+void excCad();
+int verUsr(char nm[], char sn[]);
+void menu();
+void insLiv(lvr **h, int num, const char ttl[], float prc);
+void listLiv(lvr *h);
+
+int main(void) {
+    setlocale(LC_ALL, "Portuguese");
+
+    int op;
+    do {
+        menu();
+        scanf("%d", &op);
+
+        switch (op) {
+            case 1:
+                cad();
+                break;
+            case 2:
+                ed();
+                break;
+            case 3:
+                listCad();
+                break;
+            case 4:
+                acsCad();
+                break;
+            case 5:
+                excCad();
+                break;
+            case 0:
+                printf("Saindo...\n");
+                break;
+            default:
+                printf("Opção inválida.\n");
+        }
+    } while (op != 0);
+
+    return 0;
+}
+
+void cad() {
+    FILE *fl = fopen("usuarios.txt", "a");
+    if (fl == NULL) {
+        printf("Erro ao abrir o arquivo para cadastro.\n");
+        return;
+    }
+
+    usr u;
+    do {
+        printf("Digite o e-mail do usuário: ");
+        scanf(" %99[^\n]", u.eml);
+
+        if (strchr(u.eml, '@') != NULL) {
+            break;
+        } else {
+            printf("E-mail inválido. O e-mail deve conter o caractere '@'.\n");
+        }
+    } while (1);
+
+    printf("Digite o nome do usuário: ");
+    scanf(" %49[^\n]", u.nm);
+    printf("Digite a senha do usuário: ");
+    scanf(" %49[^\n]", u.sn);
+
+    fprintf(fl, "%s %s %s\n", u.nm, u.sn, u.eml);
+    fclose(fl);
+}
+
+void ed() {
+    char nm[50], sn[50];
+    printf("Digite o nome do usuário: ");
+    scanf(" %49[^\n]", nm);
+    printf("Digite a senha do usuário: ");
+    scanf(" %49[^\n]", sn);
+
+    if (verUsr(nm, sn)) {
+        printf("Usuário autenticado. Escolha o que deseja editar:\n");
+        printf("1 - Alterar nome\n");
+        printf("2 - Alterar senha\n");
+
+        int op;
+        scanf("%d", &op);
+
+        FILE *fl = fopen("usuarios.txt", "r");
+        FILE *tmp = fopen("temp.txt", "w");
+        if (fl == NULL || tmp == NULL) {
+            printf("Erro ao abrir o arquivo para edição.\n");
+            return;
+        }
+
+        usr u;
+        while (fscanf(fl, " %49s %49s %99[^\n]", u.nm, u.sn, u.eml) != EOF) {
+            if (strcmp(u.nm, nm) == 0 && strcmp(u.sn, sn) == 0) {
+                if (op == 1) {
+                    printf("Digite o novo nome: ");
+                    scanf(" %49[^\n]", u.nm);
+                } else if (op == 2) {
+                    printf("Digite a nova senha: ");
+                    scanf(" %49[^\n]", u.sn);
+                }
+            }
+            fprintf(tmp, "%s %s %s\n", u.nm, u.sn, u.eml);
+        }
+
+        fclose(fl);
+        fclose(tmp);
+        remove("usuarios.txt");
+        rename("temp.txt", "usuarios.txt");
+        printf("Dados atualizados com sucesso.\n");
+    } else {
+        printf("Usuário ou senha incorretos.\n");
+    }
+}
+
+void listCad() {
+    FILE *fl = fopen("usuarios.txt", "r");
+    if (fl == NULL) {
+        printf("Erro ao abrir o arquivo para listagem.\n");
+        return;
+    }
+
+    usr u;
+    while (fscanf(fl, " %49s %49s %99[^\n]", u.nm, u.sn, u.eml) != EOF) {
+        printf("Usuário: %s\n", u.nm);
+    }
+    fclose(fl);
+}
+
+void acsCad() {
+    char nm[50], sn[50];
+    printf("Digite o nome do usuário: ");
+    scanf(" %49[^\n]", nm);
+    printf("Digite a senha do usuário: ");
+    scanf(" %49[^\n]", sn);
+
+    if (verUsr(nm, sn)) {
+        printf("Usuário autenticado. Lista de livros:\n");
+
+        lvr *livros = NULL;
+        insLiv(&livros, 1, "Livro1 - Introdução aos ponteiros", 29.99);
+        insLiv(&livros, 2, "Livro2 - Acessando o conteúdo apontado por um ponteiro", 39.99);
+        insLiv(&livros, 3, "Livro3 - Imprimindo um ponteiro", 24.99);
+        insLiv(&livros, 4, "Livro4 - Ponteiros como parâmetros de funções", 19.99);
+        insLiv(&livros, 5, "Livro5 - Endereços e vetores", 49.99);
+        insLiv(&livros, 6, "Livro6 - Aritmética de ponteiros", 59.99);
+        insLiv(&livros, 7, "Livro7 - Lendo um vetor em uma função usando aritmética de ponteiros", 34.99);
+        insLiv(&livros, 8, "Livro8 - Imprimindo um vetor em uma função usando aritmética de ponteiros", 44.99);
+        insLiv(&livros, 9, "Livro9 - Incremento de ponteiros", 14.99);
+        insLiv(&livros, 10, "Livro10 - Vetores de ponteiros - notação vetores", 9.99);
+
+        listLiv(livros);
+
+        float ttl = 0;
+        int op;
+        do {
+            printf("Escolha um livro (1-10) ou 0 para finalizar:\n");
+            scanf("%d", &op);
+
+            if (op > 0 && op <= 10) {
+                lvr *temp = livros;
+                while (temp != NULL) {
+                    if (temp->num == op) {
+                        ttl += temp->prc;
+                        printf("Você escolheu: %s\n", temp->ttl);
+                        break;
+                    }
+                    temp = temp->prox;
+                }
+            }
+        } while (op != 0);
+
+        printf("Total da compra: R$%.2f\n", ttl);
+    } else {
+        printf("Usuário ou senha incorretos.\n");
+    }
+}
+
+void excCad() {
+    char nm[50], sn[50];
+    printf("Digite o nome do usuário: ");
+    scanf(" %49[^\n]", nm);
+    printf("Digite a senha do usuário: ");
+    scanf(" %49[^\n]", sn);
+
+    if (verUsr(nm, sn)) {
+        FILE *fl = fopen("usuarios.txt", "r");
+        FILE *tmp = fopen("temp.txt", "w");
+        if (fl == NULL || tmp == NULL) {
+            printf("Erro ao abrir o arquivo para exclusão.\n");
+            return;
+        }
+
+        usr u;
+        while (fscanf(fl, " %49s %49s %99[^\n]", u.nm, u.sn, u.eml) != EOF) {
+            if (!(strcmp(u.nm, nm) == 0 && strcmp(u.sn, sn) == 0)) {
+                fprintf(tmp, "%s %s %s\n", u.nm, u.sn, u.eml);
+            }
+        }
+
+        fclose(fl);
+        fclose(tmp);
+        remove("usuarios.txt");
+        rename("temp.txt", "usuarios.txt");
+        printf("Cadastro excluído com sucesso.\n");
+    } else {
+        printf("Usuário ou senha incorretos.\n");
+    }
+}
+
+int verUsr(char nm[], char sn[]) {
+    FILE *fl = fopen("usuarios.txt", "r");
+    if (fl == NULL) {
+        printf("Erro ao abrir o arquivo para verificação.\n");
+        return 0;
+    }
+
+    usr u;
+    int found = 0;
+    while (fscanf(fl, " %49s %49s %99[^\n]", u.nm, u.sn, u.eml) != EOF) {
+        if (strcmp(u.nm, nm) == 0 && strcmp(u.sn, sn) == 0) {
+            found = 1;
+            break;
+        }
+    }
+    fclose(fl);
+    return found;
+}
+
+void insLiv(lvr **h, int num, const char ttl[], float prc) {
+    lvr *novo = (lvr*)malloc(sizeof(lvr));
+    if (novo == NULL) {
+        printf("Erro ao alocar memória para o livro.\n");
+        return;
+    }
+    
+    novo->num = num;
+    strcpy(novo->ttl, ttl);
+    novo->prc = prc;
+    novo->prox = *h;
+    *h = novo;
+}
+
+void listLiv(lvr *h) {
+    printf("------------------------------------------------\n");
+    printf("|  N°  |           Título do Livro             | Preço   |\n");
+    printf("------------------------------------------------\n");
+    lvr *temp = h;
+    while (temp != NULL) {
+        printf("| %-4d | %-35s | R$%-6.2f |\n", temp->num, temp->ttl, temp->prc);
+        temp = temp->prox;
+    }
+    printf("------------------------------------------------\n");
+}
+
+void menu() {
+    printf("\n********** Nathy's Books **********\n");
+    printf("1 - Cadastrar\n");
+    printf("2 - Editar Cadastro\n");
+    printf("3 - Listar Usuários\n");
+    printf("4 - Acessar Cadastro\n");
+    printf("5 - Excluir Cadastro\n");
+    printf("0 - Sair\n");
+    printf("Escolha uma opção: ");
+}
